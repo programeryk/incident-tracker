@@ -20,8 +20,11 @@ export class UpdateIncidentStatusDto {
   @Min(0)
   downtimeMinutes?: number;
 
-  @ApiPropertyOptional({ enum: IncidentPriority, example: IncidentPriority.MEDIUM })
+  @ApiPropertyOptional({
+    enum: IncidentPriority,
+    example: IncidentPriority.MEDIUM,
+  })
   @IsOptional()
   @IsEnum(IncidentPriority)
-  priority?: IncidentPriority
+  priority?: IncidentPriority;
 }
