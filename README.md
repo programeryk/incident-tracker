@@ -54,7 +54,13 @@ npm run prisma:generate
 npm run prisma:migrate -- --name init
 ```
 
-6. Start the API:
+6. Seed local sample data:
+
+```bash
+npm run prisma:seed
+```
+
+7. Start the API:
 
 ```bash
 npm run start:dev
@@ -69,6 +75,7 @@ npm run build
 npm run lint
 npm run test
 npm run test:e2e
+npm run prisma:seed
 npm run prisma:studio
 npm run db:down
 ```
