@@ -36,6 +36,12 @@ npm install
 Copy-Item .env.example .env
 ```
 
+For e2e tests, also create a dedicated test environment file:
+
+```powershell
+Copy-Item .env.test.example .env.test
+```
+
 3. Start PostgreSQL with Docker:
 
 ```bash
@@ -75,12 +81,15 @@ npm run build
 npm run lint
 npm run test
 npm run test:e2e
+npm run test:e2e:setup
 npm run prisma:seed
 npm run prisma:studio
 npm run db:down
 ```
 
-## Suggested next features
+`npm run test:e2e` prepares and resets the dedicated `incident_tracker_test` database before running the suite, so it does not touch local development data.
+
+## Next features
 
 - Authentication and role-based access
 - Pagination and sorting on incident queries
