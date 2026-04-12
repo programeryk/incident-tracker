@@ -17,15 +17,8 @@ export class IncidentsService {
   async create(dto: CreateIncidentDto) {
     const status = dto.status ?? PrismaIncidentStatus.OPEN;
     const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : new Date();
-    const acknowledgedAt = dto.acknowledgedAt
-      ? new Date(dto.acknowledgedAt)
-      : undefined;
-    const resolvedAt = dto.resolvedAt ? new Date(dto.resolvedAt) : undefined;
-
-    this.validateLifecycle({
+    const lifecycle = this.buildLifecycleForCreate({
       occurredAt,
-      acknowledgedAt,
-      resolvedAt,
       status,
     });
 
@@ -37,9 +30,9 @@ export class IncidentsService {
         priority: dto.priority,
         status,
         occurredAt: dto.occurredAt ? occurredAt : undefined,
-        acknowledgedAt,
-        resolvedAt,
-        downtimeMinutes: dto.downtimeMinutes,
+        acknowledgedAt: lifecycle.acknowledgedAt,
+        resolvedAt: lifecycle.resolvedAt,
+        downtimeMinutes: lifecycle.downtimeMinutes,
       },
       include: {
         comments: true,
@@ -97,21 +90,15 @@ export class IncidentsService {
 
   async updateStatus(id: string, dto: UpdateIncidentStatusDto) {
     const incident = await this.findOne(id);
-    const resolvedAt = dto.resolvedAt ? new Date(dto.resolvedAt) : undefined;
-
-    this.validateLifecycle({
-      occurredAt: incident.occurredAt,
-      acknowledgedAt: incident.acknowledgedAt ?? undefined,
-      resolvedAt,
-      status: dto.status,
-    });
+    const lifecycle = this.buildLifecycleForTransition(incident, dto.status);
 
     return this.prisma.incident.update({
       where: { id },
       data: {
         status: dto.status,
-        resolvedAt,
-        downtimeMinutes: dto.downtimeMinutes,
+        acknowledgedAt: lifecycle.acknowledgedAt,
+        resolvedAt: lifecycle.resolvedAt,
+        downtimeMinutes: lifecycle.downtimeMinutes,
       },
       include: {
         comments: true,
@@ -131,37 +118,75 @@ export class IncidentsService {
     });
   }
 
-  private validateLifecycle(params: {
+  private buildLifecycleForCreate(params: {
     occurredAt: Date;
-    acknowledgedAt?: Date;
-    resolvedAt?: Date;
     status: PrismaIncidentStatus | 'OPEN';
   }) {
-    const { occurredAt, acknowledgedAt, resolvedAt, status } = params;
-    const isResolvedState = status === PrismaIncidentStatus.RESOLVED;
+    const { occurredAt, status } = params;
+    const now = new Date();
 
-    if (isResolvedState && !resolvedAt) {
+    if (status === PrismaIncidentStatus.OPEN) {
+      return {
+        acknowledgedAt: undefined,
+        resolvedAt: undefined,
+        downtimeMinutes: undefined,
+      };
+    }
+
+    if (status === PrismaIncidentStatus.IN_PROGRESS) {
+      return {
+        acknowledgedAt: now,
+        resolvedAt: undefined,
+        downtimeMinutes: undefined,
+      };
+    }
+
+    return {
+      acknowledgedAt: now,
+      resolvedAt: now,
+      downtimeMinutes: this.calculateDowntimeMinutes(occurredAt, now),
+    };
+  }
+
+  private buildLifecycleForTransition(
+    incident: Awaited<ReturnType<IncidentsService['findOne']>>,
+    nextStatus: PrismaIncidentStatus,
+  ) {
+    const currentStatus = incident.status;
+    const isValidTransition =
+      (currentStatus === PrismaIncidentStatus.OPEN &&
+        (nextStatus === PrismaIncidentStatus.IN_PROGRESS ||
+          nextStatus === PrismaIncidentStatus.RESOLVED)) ||
+      (currentStatus === PrismaIncidentStatus.IN_PROGRESS &&
+        nextStatus === PrismaIncidentStatus.RESOLVED) ||
+      (currentStatus === PrismaIncidentStatus.RESOLVED &&
+        nextStatus === PrismaIncidentStatus.IN_PROGRESS);
+
+    if (!isValidTransition) {
       throw new BadRequestException(
-        'resolvedAt is required when status is RESOLVED',
+        `Invalid status transition from ${currentStatus} to ${nextStatus}`,
       );
     }
 
-    if (!isResolvedState && resolvedAt) {
-      throw new BadRequestException(
-        'resolvedAt can only be set when status is RESOLVED',
-      );
+    const now = new Date();
+
+    if (nextStatus === PrismaIncidentStatus.IN_PROGRESS) {
+      return {
+        acknowledgedAt: incident.acknowledgedAt ?? now,
+        resolvedAt: null,
+        downtimeMinutes: null,
+      };
     }
 
-    if (acknowledgedAt && acknowledgedAt < occurredAt) {
-      throw new BadRequestException(
-        'acknowledgedAt cannot be earlier than occurredAt',
-      );
-    }
+    return {
+      acknowledgedAt: incident.acknowledgedAt ?? now,
+      resolvedAt: now,
+      downtimeMinutes: this.calculateDowntimeMinutes(incident.occurredAt, now),
+    };
+  }
 
-    if (resolvedAt && resolvedAt < occurredAt) {
-      throw new BadRequestException(
-        'resolvedAt cannot be earlier than occurredAt',
-      );
-    }
+  private calculateDowntimeMinutes(start: Date, end: Date) {
+    const durationMs = end.getTime() - start.getTime();
+    return Math.max(0, Math.round(durationMs / 60000));
   }
 }

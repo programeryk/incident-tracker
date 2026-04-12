@@ -16,6 +16,7 @@ export type IncidentResponse = {
   machineId: string;
   priority: string;
   status: string;
+  acknowledgedAt?: string | null;
   occurredAt?: string;
   resolvedAt?: string | null;
   downtimeMinutes?: number | null;

@@ -1,14 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
-  Min,
 } from 'class-validator';
 import { TrimString } from '../../common/transforms/trim-string.transform';
 import { IncidentPriority, IncidentStatus } from '../incidents.types';
@@ -51,21 +48,4 @@ export class CreateIncidentDto {
   @IsOptional()
   @IsDateString()
   occurredAt?: string;
-
-  @ApiPropertyOptional({ example: '2026-04-11T15:00:00.000Z' })
-  @IsOptional()
-  @IsDateString()
-  acknowledgedAt?: string;
-
-  @ApiPropertyOptional({ example: '2026-04-11T16:00:00.000Z' })
-  @IsOptional()
-  @IsDateString()
-  resolvedAt?: string;
-
-  @ApiPropertyOptional({ example: 45 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  downtimeMinutes?: number;
 }

@@ -2,7 +2,6 @@ import request from 'supertest';
 import {
   createTestApp,
   resetDatabase,
-  type ErrorResponse,
   type TestAppContext,
 } from './utils/setup-e2e';
 
@@ -184,60 +183,75 @@ describe('Incident Validation API (e2e)', () => {
       .expect(400);
   });
 
-  it('rejects acknowledgedAt earlier than occurredAt on create', async () => {
-    const response = await request(context.httpServer)
+  it('rejects acknowledgedAt on create because it is automatic', () => {
+    return request(context.httpServer)
       .post('/incidents')
       .send({
         title: 'Unexpected vibration',
         machineId: 'MACHINE-007',
         priority: 'HIGH',
-        occurredAt: '2026-04-12T12:00:00.000Z',
         acknowledgedAt: '2026-04-12T11:00:00.000Z',
       })
       .expect(400);
-
-    const errorResponse = response.body as ErrorResponse;
-
-    expect(errorResponse.message).toContain(
-      'acknowledgedAt cannot be earlier than occurredAt',
-    );
   });
 
-  it('rejects resolvedAt earlier than occurredAt on create', async () => {
-    const response = await request(context.httpServer)
+  it('rejects resolvedAt on create because it is automatic', () => {
+    return request(context.httpServer)
       .post('/incidents')
       .send({
         title: 'Unexpected vibration',
         machineId: 'MACHINE-007',
         priority: 'HIGH',
-        status: 'RESOLVED',
-        occurredAt: '2026-04-12T12:00:00.000Z',
         resolvedAt: '2026-04-12T11:00:00.000Z',
       })
       .expect(400);
-
-    const errorResponse = response.body as ErrorResponse;
-
-    expect(errorResponse.message).toContain(
-      'resolvedAt cannot be earlier than occurredAt',
-    );
   });
 
-  it('rejects resolved statuses without resolvedAt on create', async () => {
-    const response = await request(context.httpServer)
+  it('rejects downtimeMinutes on create because it is automatic', () => {
+    return request(context.httpServer)
       .post('/incidents')
       .send({
         title: 'Unexpected vibration',
         machineId: 'MACHINE-007',
         priority: 'HIGH',
-        status: 'RESOLVED',
+        downtimeMinutes: 25,
       })
       .expect(400);
+  });
 
-    const errorResponse = response.body as ErrorResponse;
+  it('rejects resolvedAt on the status endpoint because it is automatic', async () => {
+    const incident = await context.prisma.incident.create({
+      data: {
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-010',
+        priority: 'HIGH',
+      },
+    });
 
-    expect(errorResponse.message).toContain(
-      'resolvedAt is required when status is RESOLVED',
-    );
+    return request(context.httpServer)
+      .patch(`/incidents/${incident.id}/status`)
+      .send({
+        status: 'RESOLVED',
+        resolvedAt: '2026-04-12T11:00:00.000Z',
+      })
+      .expect(400);
+  });
+
+  it('rejects downtimeMinutes on the status endpoint because it is automatic', async () => {
+    const incident = await context.prisma.incident.create({
+      data: {
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-011',
+        priority: 'HIGH',
+      },
+    });
+
+    return request(context.httpServer)
+      .patch(`/incidents/${incident.id}/status`)
+      .send({
+        status: 'RESOLVED',
+        downtimeMinutes: 25,
+      })
+      .expect(400);
   });
 });
