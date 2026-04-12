@@ -8,10 +8,8 @@ datasource db {
 
 enum IncidentStatus {
   OPEN
-  INVESTIGATING
   IN_PROGRESS
   RESOLVED
-  CLOSED
 }
 
 enum IncidentPriority {

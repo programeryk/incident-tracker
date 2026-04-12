@@ -138,19 +138,17 @@ export class IncidentsService {
     status: PrismaIncidentStatus | 'OPEN';
   }) {
     const { occurredAt, acknowledgedAt, resolvedAt, status } = params;
-    const isResolvedState =
-      status === PrismaIncidentStatus.RESOLVED ||
-      status === PrismaIncidentStatus.CLOSED;
+    const isResolvedState = status === PrismaIncidentStatus.RESOLVED;
 
     if (isResolvedState && !resolvedAt) {
       throw new BadRequestException(
-        'resolvedAt is required when status is RESOLVED or CLOSED',
+        'resolvedAt is required when status is RESOLVED',
       );
     }
 
     if (!isResolvedState && resolvedAt) {
       throw new BadRequestException(
-        'resolvedAt can only be set when status is RESOLVED or CLOSED',
+        'resolvedAt can only be set when status is RESOLVED',
       );
     }
 

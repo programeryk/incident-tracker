@@ -237,7 +237,7 @@ describe('Incident Validation API (e2e)', () => {
     const errorResponse = response.body as ErrorResponse;
 
     expect(errorResponse.message).toContain(
-      'resolvedAt is required when status is RESOLVED or CLOSED',
+      'resolvedAt is required when status is RESOLVED',
     );
   });
 });

@@ -80,7 +80,7 @@ describe('Incident Status API (e2e)', () => {
     const errorResponse = response.body as ErrorResponse;
 
     expect(errorResponse.message).toContain(
-      'resolvedAt is required when status is RESOLVED or CLOSED',
+      'resolvedAt is required when status is RESOLVED',
     );
   });
 
@@ -104,7 +104,7 @@ describe('Incident Status API (e2e)', () => {
     const errorResponse = response.body as ErrorResponse;
 
     expect(errorResponse.message).toContain(
-      'resolvedAt can only be set when status is RESOLVED or CLOSED',
+      'resolvedAt can only be set when status is RESOLVED',
     );
   });
 
