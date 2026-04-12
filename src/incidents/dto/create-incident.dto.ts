@@ -4,16 +4,20 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   Min,
 } from 'class-validator';
+import { TrimString } from '../../common/transforms/trim-string.transform';
 import { IncidentPriority, IncidentStatus } from '../incidents.types';
 
 export class CreateIncidentDto {
   @ApiProperty({ example: 'Hydraulic pressure drop on line 3' })
+  @TrimString()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(120)
   title!: string;
 
@@ -21,12 +25,16 @@ export class CreateIncidentDto {
     example: 'Pressure dropped below threshold and triggered emergency stop.',
   })
   @IsOptional()
+  @TrimString()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(2000)
   description?: string;
 
   @ApiProperty({ example: 'MACHINE-003' })
+  @TrimString()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(80)
   machineId!: string;
 
@@ -48,6 +56,11 @@ export class CreateIncidentDto {
   @IsOptional()
   @IsDateString()
   acknowledgedAt?: string;
+
+  @ApiPropertyOptional({ example: '2026-04-11T16:00:00.000Z' })
+  @IsOptional()
+  @IsDateString()
+  resolvedAt?: string;
 
   @ApiPropertyOptional({ example: 45 })
   @IsOptional()

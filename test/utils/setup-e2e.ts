@@ -32,6 +32,10 @@ export type CommentResponse = {
   message: string;
 };
 
+export type ErrorResponse = {
+  message: string | string[];
+};
+
 export async function createTestApp(): Promise<TestAppContext> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],

@@ -2,6 +2,7 @@ import request from 'supertest';
 import {
   createTestApp,
   resetDatabase,
+  type ErrorResponse,
   type TestAppContext,
 } from './utils/setup-e2e';
 
@@ -31,6 +32,63 @@ describe('Incident Validation API (e2e)', () => {
       .expect(400);
   });
 
+  it('rejects empty machine identifiers with 400', () => {
+    return request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: '',
+        priority: 'HIGH',
+      })
+      .expect(400);
+  });
+
+  it('rejects whitespace-only titles with 400', () => {
+    return request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: '   ',
+        machineId: 'MACHINE-003',
+        priority: 'HIGH',
+      })
+      .expect(400);
+  });
+
+  it('rejects whitespace-only machine identifiers with 400', () => {
+    return request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: '   ',
+        priority: 'HIGH',
+      })
+      .expect(400);
+  });
+
+  it('rejects empty descriptions when provided', () => {
+    return request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-007',
+        priority: 'HIGH',
+        description: '',
+      })
+      .expect(400);
+  });
+
+  it('rejects whitespace-only descriptions when provided', () => {
+    return request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-007',
+        priority: 'HIGH',
+        description: '   ',
+      })
+      .expect(400);
+  });
+
   it('rejects invalid status payloads with 400', () => {
     return request(context.httpServer)
       .patch('/incidents/non-existent-id/status')
@@ -45,6 +103,46 @@ describe('Incident Validation API (e2e)', () => {
       .post('/incidents/non-existent-id/comments')
       .send({
         author: 'maintenance-tech',
+      })
+      .expect(400);
+  });
+
+  it('rejects empty comment messages with 400', () => {
+    return request(context.httpServer)
+      .post('/incidents/non-existent-id/comments')
+      .send({
+        author: 'maintenance-tech',
+        message: '',
+      })
+      .expect(400);
+  });
+
+  it('rejects whitespace-only comment messages with 400', () => {
+    return request(context.httpServer)
+      .post('/incidents/non-existent-id/comments')
+      .send({
+        author: 'maintenance-tech',
+        message: '   ',
+      })
+      .expect(400);
+  });
+
+  it('rejects empty authors when provided', () => {
+    return request(context.httpServer)
+      .post('/incidents/non-existent-id/comments')
+      .send({
+        author: '',
+        message: 'Operator reported a restart loop.',
+      })
+      .expect(400);
+  });
+
+  it('rejects whitespace-only authors when provided', () => {
+    return request(context.httpServer)
+      .post('/incidents/non-existent-id/comments')
+      .send({
+        author: '   ',
+        message: 'Operator reported a restart loop.',
       })
       .expect(400);
   });
@@ -66,5 +164,80 @@ describe('Incident Validation API (e2e)', () => {
       .get('/incidents')
       .query({ priority: 'NOT_REAL' })
       .expect(400);
+  });
+
+  it('rejects priority on the status endpoint with 400', async () => {
+    const incident = await context.prisma.incident.create({
+      data: {
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-009',
+        priority: 'HIGH',
+      },
+    });
+
+    return request(context.httpServer)
+      .patch(`/incidents/${incident.id}/status`)
+      .send({
+        status: 'IN_PROGRESS',
+        priority: 'LOW',
+      })
+      .expect(400);
+  });
+
+  it('rejects acknowledgedAt earlier than occurredAt on create', async () => {
+    const response = await request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-007',
+        priority: 'HIGH',
+        occurredAt: '2026-04-12T12:00:00.000Z',
+        acknowledgedAt: '2026-04-12T11:00:00.000Z',
+      })
+      .expect(400);
+
+    const errorResponse = response.body as ErrorResponse;
+
+    expect(errorResponse.message).toContain(
+      'acknowledgedAt cannot be earlier than occurredAt',
+    );
+  });
+
+  it('rejects resolvedAt earlier than occurredAt on create', async () => {
+    const response = await request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-007',
+        priority: 'HIGH',
+        status: 'RESOLVED',
+        occurredAt: '2026-04-12T12:00:00.000Z',
+        resolvedAt: '2026-04-12T11:00:00.000Z',
+      })
+      .expect(400);
+
+    const errorResponse = response.body as ErrorResponse;
+
+    expect(errorResponse.message).toContain(
+      'resolvedAt cannot be earlier than occurredAt',
+    );
+  });
+
+  it('rejects resolved statuses without resolvedAt on create', async () => {
+    const response = await request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-007',
+        priority: 'HIGH',
+        status: 'RESOLVED',
+      })
+      .expect(400);
+
+    const errorResponse = response.body as ErrorResponse;
+
+    expect(errorResponse.message).toContain(
+      'resolvedAt is required when status is RESOLVED or CLOSED',
+    );
   });
 });

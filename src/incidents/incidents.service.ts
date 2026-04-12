@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { IncidentStatus as PrismaIncidentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncidentCommentDto } from './dto/create-incident-comment.dto';
 import { CreateIncidentDto } from './dto/create-incident.dto';
@@ -11,17 +15,30 @@ export class IncidentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateIncidentDto) {
+    const status = dto.status ?? PrismaIncidentStatus.OPEN;
+    const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : new Date();
+    const acknowledgedAt = dto.acknowledgedAt
+      ? new Date(dto.acknowledgedAt)
+      : undefined;
+    const resolvedAt = dto.resolvedAt ? new Date(dto.resolvedAt) : undefined;
+
+    this.validateLifecycle({
+      occurredAt,
+      acknowledgedAt,
+      resolvedAt,
+      status,
+    });
+
     return await this.prisma.incident.create({
       data: {
         title: dto.title,
         description: dto.description,
         machineId: dto.machineId,
         priority: dto.priority,
-        status: dto.status ?? 'OPEN',
-        occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : undefined,
-        acknowledgedAt: dto.acknowledgedAt
-          ? new Date(dto.acknowledgedAt)
-          : undefined,
+        status,
+        occurredAt: dto.occurredAt ? occurredAt : undefined,
+        acknowledgedAt,
+        resolvedAt,
         downtimeMinutes: dto.downtimeMinutes,
       },
       include: {
@@ -79,15 +96,22 @@ export class IncidentsService {
   }
 
   async updateStatus(id: string, dto: UpdateIncidentStatusDto) {
-    await this.findOne(id);
+    const incident = await this.findOne(id);
+    const resolvedAt = dto.resolvedAt ? new Date(dto.resolvedAt) : undefined;
+
+    this.validateLifecycle({
+      occurredAt: incident.occurredAt,
+      acknowledgedAt: incident.acknowledgedAt ?? undefined,
+      resolvedAt,
+      status: dto.status,
+    });
 
     return this.prisma.incident.update({
       where: { id },
       data: {
         status: dto.status,
-        resolvedAt: dto.resolvedAt ? new Date(dto.resolvedAt) : undefined,
+        resolvedAt,
         downtimeMinutes: dto.downtimeMinutes,
-        priority: dto.priority,
       },
       include: {
         comments: true,
@@ -105,5 +129,41 @@ export class IncidentsService {
         message: dto.message,
       },
     });
+  }
+
+  private validateLifecycle(params: {
+    occurredAt: Date;
+    acknowledgedAt?: Date;
+    resolvedAt?: Date;
+    status: PrismaIncidentStatus | 'OPEN';
+  }) {
+    const { occurredAt, acknowledgedAt, resolvedAt, status } = params;
+    const isResolvedState =
+      status === PrismaIncidentStatus.RESOLVED ||
+      status === PrismaIncidentStatus.CLOSED;
+
+    if (isResolvedState && !resolvedAt) {
+      throw new BadRequestException(
+        'resolvedAt is required when status is RESOLVED or CLOSED',
+      );
+    }
+
+    if (!isResolvedState && resolvedAt) {
+      throw new BadRequestException(
+        'resolvedAt can only be set when status is RESOLVED or CLOSED',
+      );
+    }
+
+    if (acknowledgedAt && acknowledgedAt < occurredAt) {
+      throw new BadRequestException(
+        'acknowledgedAt cannot be earlier than occurredAt',
+      );
+    }
+
+    if (resolvedAt && resolvedAt < occurredAt) {
+      throw new BadRequestException(
+        'resolvedAt cannot be earlier than occurredAt',
+      );
+    }
   }
 }

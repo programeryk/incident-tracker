@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsDateString, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
-import { IncidentStatus, IncidentPriority } from '../incidents.types';
+import { IncidentStatus } from '../incidents.types';
 
 export class UpdateIncidentStatusDto {
   @ApiProperty({ enum: IncidentStatus, example: IncidentStatus.IN_PROGRESS })
@@ -19,12 +19,4 @@ export class UpdateIncidentStatusDto {
   @IsInt()
   @Min(0)
   downtimeMinutes?: number;
-
-  @ApiPropertyOptional({
-    enum: IncidentPriority,
-    example: IncidentPriority.MEDIUM,
-  })
-  @IsOptional()
-  @IsEnum(IncidentPriority)
-  priority?: IncidentPriority;
 }

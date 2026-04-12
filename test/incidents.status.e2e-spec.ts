@@ -2,6 +2,7 @@ import request from 'supertest';
 import {
   createTestApp,
   resetDatabase,
+  type ErrorResponse,
   type IncidentResponse,
   type TestAppContext,
 } from './utils/setup-e2e';
@@ -27,6 +28,7 @@ describe('Incident Status API (e2e)', () => {
         title: 'Cooling circuit interruption',
         machineId: 'COOLING-01',
         priority: 'HIGH',
+        occurredAt: new Date('2026-04-12T10:00:00.000Z'),
       },
     });
 
@@ -36,7 +38,6 @@ describe('Incident Status API (e2e)', () => {
         status: 'RESOLVED',
         resolvedAt: '2026-04-12T12:00:00.000Z',
         downtimeMinutes: 90,
-        priority: 'MEDIUM',
       })
       .expect(200);
 
@@ -46,7 +47,7 @@ describe('Incident Status API (e2e)', () => {
       id: incident.id,
       status: 'RESOLVED',
       downtimeMinutes: 90,
-      priority: 'MEDIUM',
+      priority: 'HIGH',
     });
     expect(updatedIncident.resolvedAt).toBe('2026-04-12T12:00:00.000Z');
   });
@@ -58,5 +59,77 @@ describe('Incident Status API (e2e)', () => {
         status: 'RESOLVED',
       })
       .expect(404);
+  });
+
+  it('rejects resolved status updates without resolvedAt', async () => {
+    const incident = await context.prisma.incident.create({
+      data: {
+        title: 'Cooling fan anomaly',
+        machineId: 'COOLING-02',
+        priority: 'MEDIUM',
+      },
+    });
+
+    const response = await request(context.httpServer)
+      .patch(`/incidents/${incident.id}/status`)
+      .send({
+        status: 'RESOLVED',
+      })
+      .expect(400);
+
+    const errorResponse = response.body as ErrorResponse;
+
+    expect(errorResponse.message).toContain(
+      'resolvedAt is required when status is RESOLVED or CLOSED',
+    );
+  });
+
+  it('rejects resolvedAt for non-resolved statuses', async () => {
+    const incident = await context.prisma.incident.create({
+      data: {
+        title: 'Sensor anomaly',
+        machineId: 'SENSOR-02',
+        priority: 'MEDIUM',
+      },
+    });
+
+    const response = await request(context.httpServer)
+      .patch(`/incidents/${incident.id}/status`)
+      .send({
+        status: 'IN_PROGRESS',
+        resolvedAt: '2026-04-12T12:00:00.000Z',
+      })
+      .expect(400);
+
+    const errorResponse = response.body as ErrorResponse;
+
+    expect(errorResponse.message).toContain(
+      'resolvedAt can only be set when status is RESOLVED or CLOSED',
+    );
+  });
+
+  it('rejects resolvedAt earlier than occurredAt', async () => {
+    const incident = await context.prisma.incident.create({
+      data: {
+        title: 'Motor temperature spike',
+        machineId: 'MOTOR-03',
+        priority: 'HIGH',
+        occurredAt: new Date('2026-04-12T14:00:00.000Z'),
+      },
+    });
+
+    const response = await request(context.httpServer)
+      .patch(`/incidents/${incident.id}/status`)
+      .send({
+        status: 'RESOLVED',
+        resolvedAt: '2026-04-12T12:00:00.000Z',
+      })
+      .expect(400);
+
+    const errorResponse = response.body as ErrorResponse;
+
+    expect(errorResponse.message).toContain(
+      'resolvedAt cannot be earlier than occurredAt',
+    );
   });
 });
