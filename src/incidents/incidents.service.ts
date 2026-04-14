@@ -40,7 +40,7 @@ export class IncidentsService {
     });
   }
 
-  async findAll(query: ListIncidentsQueryDto) {
+  async getAll(query: ListIncidentsQueryDto) {
     const where: Prisma.IncidentWhereInput = {
       machineId: query.machineId,
       status: query.status,
@@ -69,7 +69,7 @@ export class IncidentsService {
     });
   }
 
-  async findOne(id: string) {
+  async getOne(id: string) {
     const incident = await this.prisma.incident.findUnique({
       where: { id },
       include: {
@@ -89,7 +89,7 @@ export class IncidentsService {
   }
 
   async updateStatus(id: string, dto: UpdateIncidentStatusDto) {
-    const incident = await this.findOne(id);
+    const incident = await this.getOne(id);
     const lifecycle = this.buildLifecycleForTransition(incident, dto.status);
 
     return this.prisma.incident.update({
@@ -107,7 +107,7 @@ export class IncidentsService {
   }
 
   async addComment(id: string, dto: CreateIncidentCommentDto) {
-    await this.findOne(id);
+    await this.getOne(id);
 
     return this.prisma.incidentComment.create({
       data: {
@@ -149,7 +149,7 @@ export class IncidentsService {
   }
 
   private buildLifecycleForTransition(
-    incident: Awaited<ReturnType<IncidentsService['findOne']>>,
+    incident: Awaited<ReturnType<IncidentsService['getOne']>>,
     nextStatus: PrismaIncidentStatus,
   ) {
     const currentStatus = incident.status;

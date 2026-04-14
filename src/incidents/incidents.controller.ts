@@ -34,15 +34,15 @@ export class IncidentsController {
   @Get()
   @ApiOperation({ summary: 'List incidents with optional filters' })
   @ApiOkResponse({ description: 'Filtered incident list returned.' })
-  findAll(@Query() query: ListIncidentsQueryDto) {
-    return this.incidentsService.findAll(query);
+  getAll(@Query() query: ListIncidentsQueryDto) {
+    return this.incidentsService.getAll(query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single incident with comments' })
   @ApiOkResponse({ description: 'Incident returned successfully.' })
-  findOne(@Param('id') id: string) {
-    return this.incidentsService.findOne(id);
+  getOne(@Param('id') id: string) {
+    return this.incidentsService.getOne(id);
   }
 
   @Patch(':id/status')
