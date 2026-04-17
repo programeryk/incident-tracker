@@ -219,6 +219,20 @@ describe('Incident Validation API (e2e)', () => {
       .expect(400);
   });
 
+  it('rejects future occurrence dates on create', () => {
+    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    return request(context.httpServer)
+      .post('/incidents')
+      .send({
+        title: 'Unexpected vibration',
+        machineId: 'MACHINE-007',
+        priority: 'HIGH',
+        occurredAt: futureDate,
+      })
+      .expect(400);
+  });
+
   it('rejects resolvedAt on the status endpoint because it is automatic', async () => {
     const incident = await context.prisma.incident.create({
       data: {

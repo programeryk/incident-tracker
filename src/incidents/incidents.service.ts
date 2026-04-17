@@ -17,6 +17,11 @@ export class IncidentsService {
   async create(dto: CreateIncidentDto) {
     const status = dto.status ?? PrismaIncidentStatus.OPEN;
     const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : new Date();
+
+    if (occurredAt.getTime() > Date.now()) {
+      throw new BadRequestException('occurredAt cannot be in the future.');
+    }
+
     const lifecycle = this.buildLifecycleForCreate({
       occurredAt,
       status,
@@ -41,6 +46,15 @@ export class IncidentsService {
   }
 
   async getAll(query: ListIncidentsQueryDto) {
+    if (query.fromDate && query.toDate) {
+      const fromDate = new Date(query.fromDate);
+      const toDate = new Date(query.toDate);
+
+      if (fromDate.getTime() > toDate.getTime()) {
+        throw new BadRequestException('fromDate cannot be after toDate.');
+      }
+    }
+
     const where: Prisma.IncidentWhereInput = {
       machineId: query.machineId,
       status: query.status,

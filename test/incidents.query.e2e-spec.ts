@@ -70,6 +70,21 @@ describe('Incident Query API (e2e)', () => {
       }),
     ).toBe(true);
 
+    const byTrimmedMachine = await request(context.httpServer)
+      .get('/incidents')
+      .query({ machineId: '  PRESS-01  ' })
+      .expect(200);
+
+    const trimmedMachineFilteredBodies =
+      byTrimmedMachine.body as IncidentResponse[];
+
+    expect(trimmedMachineFilteredBodies).toHaveLength(2);
+    expect(
+      trimmedMachineFilteredBodies.every((incident) => {
+        return incident.machineId === 'PRESS-01';
+      }),
+    ).toBe(true);
+
     const byStatus = await request(context.httpServer)
       .get('/incidents')
       .query({ status: 'IN_PROGRESS' })
@@ -110,6 +125,16 @@ describe('Incident Query API (e2e)', () => {
     expect(dateRangeFilteredBodies[0]).toMatchObject({
       machineId: 'PRESS-02',
     });
+  });
+
+  it('GET /incidents rejects inverted date ranges', () => {
+    return request(context.httpServer)
+      .get('/incidents')
+      .query({
+        fromDate: '2026-04-12T00:00:00.000Z',
+        toDate: '2026-04-11T23:59:59.999Z',
+      })
+      .expect(400);
   });
 
   it('GET /incidents/:id returns an incident with comments', async () => {

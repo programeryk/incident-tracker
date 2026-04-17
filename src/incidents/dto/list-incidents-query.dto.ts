@@ -6,11 +6,13 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { TrimString } from '../../common/transforms/trim-string.transform';
 import { IncidentPriority, IncidentStatus } from '../incidents.types';
 
 export class ListIncidentsQueryDto {
   @ApiPropertyOptional({ example: 'MACHINE-003' })
   @IsOptional()
+  @TrimString()
   @IsString()
   @MaxLength(80)
   machineId?: string;
