@@ -2,6 +2,10 @@ require('dotenv').config({ path: '.env.test', override: true });
 
 const { execFileSync } = require('node:child_process');
 const { Client } = require('pg');
+const {
+  assertSafeTestDatabase,
+  parseDatabaseUrl,
+} = require('../scripts/database-safety');
 
 const testDatabaseUrl = process.env.DATABASE_URL;
 
@@ -11,6 +15,8 @@ if (!testDatabaseUrl) {
   );
 }
 
+const targetDatabase = assertSafeTestDatabase(testDatabaseUrl);
+
 const createAdminDatabaseUrl = (connectionString) => {
   const url = new URL(connectionString);
   url.pathname = '/postgres';
@@ -18,8 +24,7 @@ const createAdminDatabaseUrl = (connectionString) => {
 };
 
 const getDatabaseName = (connectionString) => {
-  const url = new URL(connectionString);
-  return url.pathname.replace(/^\//, '');
+  return parseDatabaseUrl(connectionString).databaseName;
 };
 
 const ensureTestDatabaseExists = async () => {
@@ -81,6 +86,9 @@ const verifyDatabaseConnection = async () => {
 };
 
 async function main() {
+  console.log(
+    `Preparing test database "${targetDatabase.databaseName}" on "${targetDatabase.host}".`,
+  );
   await ensureTestDatabaseExists();
   await resetTestDatabase();
   applyMigrations();

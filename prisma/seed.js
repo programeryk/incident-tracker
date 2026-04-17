@@ -3,6 +3,7 @@ require('dotenv/config');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
+const { assertSafeSeedDatabase } = require('../scripts/database-safety');
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -12,11 +13,15 @@ if (!connectionString) {
   );
 }
 
+const targetDatabase = assertSafeSeedDatabase(connectionString);
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  console.log(
+    `Seeding database "${targetDatabase.databaseName}" on "${targetDatabase.host}".`,
+  );
   await prisma.incidentComment.deleteMany();
   await prisma.incident.deleteMany();
 
