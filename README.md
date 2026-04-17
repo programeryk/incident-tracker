@@ -15,6 +15,7 @@ Backend API for reporting and managing machine incidents with NestJS, PostgreSQL
 ## What is included
 
 - `GET /` health check
+- `GET /ready` database readiness check
 - `POST /incidents` create an incident
 - `GET /incidents` filter by machine, status, priority, and date range
 - `GET /incidents/:id` fetch a single incident with comments
@@ -54,10 +55,10 @@ npm run db:up
 npm run prisma:generate
 ```
 
-5. Create the initial database migration:
+5. Apply the existing database migrations:
 
 ```bash
-npm run prisma:migrate -- --name init
+npx prisma migrate deploy
 ```
 
 6. Seed local sample data:
@@ -79,6 +80,8 @@ The API will be available at `http://localhost:3000` and Swagger docs at `http:/
 ```bash
 npm run build
 npm run lint
+npm run lint:fix
+npm run format:check
 npm run test
 npm run test:e2e
 npm run test:e2e:setup
@@ -89,10 +92,11 @@ npm run db:down
 
 `npm run test:e2e` prepares and resets the dedicated `incident_tracker_test` database before running the suite, so it does not touch local development data.
 
+The seed and e2e setup commands include local database safety checks before deleting data.
+
 ## Next features
 
 - Authentication and role-based access
-- Pagination and sorting on incident queries
 - Redis-backed caching or queues
 - Structured logging and metrics
 - Seed data for demo environments
