@@ -23,4 +23,16 @@ describe('Health API (e2e)', () => {
         });
       });
   });
+
+  it('GET /ready returns the readiness payload', () => {
+    return request(context.httpServer)
+      .get('/ready')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          name: 'maintenance-incident-tracker-api',
+          status: 'ready',
+        });
+      });
+  });
 });
