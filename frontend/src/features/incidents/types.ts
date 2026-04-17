@@ -1,5 +1,4 @@
 export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
-
 export type IncidentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export type IncidentComment = {
