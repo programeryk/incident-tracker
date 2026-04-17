@@ -27,6 +27,18 @@ export type IncidentResponse = {
   }>;
 };
 
+export type PaginatedIncidentsResponse = {
+  data: IncidentResponse[];
+  meta: {
+    page: number;
+    pageSize: number;
+    itemCount: number;
+    pageCount: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+};
+
 export type CommentResponse = {
   incidentId: string;
   author?: string | null;

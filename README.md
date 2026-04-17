@@ -17,7 +17,7 @@ Backend API for reporting and managing machine incidents with NestJS, PostgreSQL
 - `GET /` health check
 - `GET /ready` database readiness check
 - `POST /incidents` create an incident
-- `GET /incidents` filter by machine, status, priority, and date range
+- `GET /incidents` filter and paginate incidents by machine, status, priority, and date range
 - `GET /incidents/:id` fetch a single incident with comments
 - `PATCH /incidents/:id/status` update status and downtime info
 - `POST /incidents/:id/comments` add comments or progress updates
@@ -108,4 +108,26 @@ The seed and e2e setup commands include local database safety checks before dele
 curl -X POST http://localhost:3000/incidents `
   -H "Content-Type: application/json" `
   -d "{\"title\":\"Hydraulic leak on press 04\",\"machineId\":\"PRESS-04\",\"priority\":\"HIGH\",\"description\":\"Oil leak detected near the main cylinder.\"}"
+```
+
+List incidents with filters and pagination:
+
+```powershell
+curl "http://localhost:3000/incidents?status=OPEN&page=1&pageSize=20"
+```
+
+`GET /incidents` returns a paginated response:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "page": 1,
+    "pageSize": 20,
+    "itemCount": 0,
+    "pageCount": 0,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
+}
 ```

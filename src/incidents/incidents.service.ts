@@ -68,19 +68,44 @@ export class IncidentsService {
           : undefined,
     };
 
-    return await this.prisma.incident.findMany({
-      where,
-      include: {
-        comments: {
-          orderBy: {
-            createdAt: 'desc',
+    const page = query.page;
+    const pageSize = query.pageSize;
+    const skip = (page - 1) * pageSize;
+    const orderBy: Prisma.IncidentOrderByWithRelationInput[] = [
+      { occurredAt: 'desc' },
+      { id: 'desc' },
+    ];
+
+    const [itemCount, data] = await this.prisma.$transaction([
+      this.prisma.incident.count({ where }),
+      this.prisma.incident.findMany({
+        where,
+        skip,
+        take: pageSize,
+        include: {
+          comments: {
+            orderBy: {
+              createdAt: 'desc',
+            },
           },
         },
+        orderBy,
+      }),
+    ]);
+
+    const pageCount = Math.ceil(itemCount / pageSize);
+
+    return {
+      data,
+      meta: {
+        page,
+        pageSize,
+        itemCount,
+        pageCount,
+        hasNextPage: page < pageCount,
+        hasPreviousPage: page > 1 && pageCount > 0,
       },
-      orderBy: {
-        occurredAt: 'desc',
-      },
-    });
+    };
   }
 
   async getOne(id: string) {

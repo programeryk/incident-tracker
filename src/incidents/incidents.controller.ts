@@ -35,8 +35,38 @@ export class IncidentsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List incidents with optional filters' })
-  @ApiOkResponse({ description: 'Filtered incident list returned.' })
+  @ApiOperation({
+    summary: 'List incidents with optional filters and pagination',
+  })
+  @ApiOkResponse({
+    description: 'Paginated incident list returned.',
+    schema: {
+      example: {
+        data: [
+          {
+            id: 'clxincident001',
+            title: 'Hydraulic leak on press 04',
+            machineId: 'PRESS-04',
+            status: 'OPEN',
+            priority: 'HIGH',
+            occurredAt: '2026-04-11T14:30:00.000Z',
+            acknowledgedAt: null,
+            resolvedAt: null,
+            downtimeMinutes: null,
+            comments: [],
+          },
+        ],
+        meta: {
+          page: 1,
+          pageSize: 20,
+          itemCount: 57,
+          pageCount: 3,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
   @ApiBadRequestResponse({ description: 'Query parameters failed validation.' })
   getAll(@Query() query: ListIncidentsQueryDto) {
     return this.incidentsService.getAll(query);

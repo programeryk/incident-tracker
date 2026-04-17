@@ -3,6 +3,7 @@ import {
   createTestApp,
   resetDatabase,
   type IncidentResponse,
+  type PaginatedIncidentsResponse,
   type TestAppContext,
 } from './utils/setup-e2e';
 
@@ -52,20 +53,28 @@ describe('Incident Query API (e2e)', () => {
       .get('/incidents')
       .expect(200);
 
-    const allIncidentBodies = allIncidents.body as IncidentResponse[];
+    const allIncidentBodies = allIncidents.body as PaginatedIncidentsResponse;
 
-    expect(allIncidentBodies).toHaveLength(3);
+    expect(allIncidentBodies.data).toHaveLength(3);
+    expect(allIncidentBodies.meta).toMatchObject({
+      page: 1,
+      pageSize: 20,
+      itemCount: 3,
+      pageCount: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    });
 
     const byMachine = await request(context.httpServer)
       .get('/incidents')
       .query({ machineId: 'PRESS-01' })
       .expect(200);
 
-    const machineFilteredBodies = byMachine.body as IncidentResponse[];
+    const machineFilteredBodies = byMachine.body as PaginatedIncidentsResponse;
 
-    expect(machineFilteredBodies).toHaveLength(2);
+    expect(machineFilteredBodies.data).toHaveLength(2);
     expect(
-      machineFilteredBodies.every((incident) => {
+      machineFilteredBodies.data.every((incident) => {
         return incident.machineId === 'PRESS-01';
       }),
     ).toBe(true);
@@ -76,11 +85,11 @@ describe('Incident Query API (e2e)', () => {
       .expect(200);
 
     const trimmedMachineFilteredBodies =
-      byTrimmedMachine.body as IncidentResponse[];
+      byTrimmedMachine.body as PaginatedIncidentsResponse;
 
-    expect(trimmedMachineFilteredBodies).toHaveLength(2);
+    expect(trimmedMachineFilteredBodies.data).toHaveLength(2);
     expect(
-      trimmedMachineFilteredBodies.every((incident) => {
+      trimmedMachineFilteredBodies.data.every((incident) => {
         return incident.machineId === 'PRESS-01';
       }),
     ).toBe(true);
@@ -90,10 +99,10 @@ describe('Incident Query API (e2e)', () => {
       .query({ status: 'IN_PROGRESS' })
       .expect(200);
 
-    const statusFilteredBodies = byStatus.body as IncidentResponse[];
+    const statusFilteredBodies = byStatus.body as PaginatedIncidentsResponse;
 
-    expect(statusFilteredBodies).toHaveLength(1);
-    expect(statusFilteredBodies[0]).toMatchObject({
+    expect(statusFilteredBodies.data).toHaveLength(1);
+    expect(statusFilteredBodies.data[0]).toMatchObject({
       machineId: 'PRESS-02',
       status: 'IN_PROGRESS',
     });
@@ -103,10 +112,11 @@ describe('Incident Query API (e2e)', () => {
       .query({ priority: 'CRITICAL' })
       .expect(200);
 
-    const priorityFilteredBodies = byPriority.body as IncidentResponse[];
+    const priorityFilteredBodies =
+      byPriority.body as PaginatedIncidentsResponse;
 
-    expect(priorityFilteredBodies).toHaveLength(1);
-    expect(priorityFilteredBodies[0]).toMatchObject({
+    expect(priorityFilteredBodies.data).toHaveLength(1);
+    expect(priorityFilteredBodies.data[0]).toMatchObject({
       machineId: 'PRESS-02',
       priority: 'CRITICAL',
     });
@@ -119,11 +129,85 @@ describe('Incident Query API (e2e)', () => {
       })
       .expect(200);
 
-    const dateRangeFilteredBodies = byDateRange.body as IncidentResponse[];
+    const dateRangeFilteredBodies =
+      byDateRange.body as PaginatedIncidentsResponse;
 
-    expect(dateRangeFilteredBodies).toHaveLength(1);
-    expect(dateRangeFilteredBodies[0]).toMatchObject({
+    expect(dateRangeFilteredBodies.data).toHaveLength(1);
+    expect(dateRangeFilteredBodies.data[0]).toMatchObject({
       machineId: 'PRESS-02',
+    });
+  });
+
+  it('GET /incidents applies page and pageSize', async () => {
+    await context.prisma.incident.createMany({
+      data: [
+        {
+          title: 'Oldest event',
+          machineId: 'PAGER-01',
+          priority: 'LOW',
+          occurredAt: new Date('2026-04-10T07:00:00.000Z'),
+        },
+        {
+          title: 'Middle event',
+          machineId: 'PAGER-02',
+          priority: 'MEDIUM',
+          occurredAt: new Date('2026-04-11T07:00:00.000Z'),
+        },
+        {
+          title: 'Newest event',
+          machineId: 'PAGER-03',
+          priority: 'HIGH',
+          occurredAt: new Date('2026-04-12T07:00:00.000Z'),
+        },
+      ],
+    });
+
+    const response = await request(context.httpServer)
+      .get('/incidents')
+      .query({ page: 2, pageSize: 2 })
+      .expect(200);
+
+    const body = response.body as PaginatedIncidentsResponse;
+
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0]).toMatchObject({
+      title: 'Oldest event',
+      machineId: 'PAGER-01',
+    });
+    expect(body.meta).toMatchObject({
+      page: 2,
+      pageSize: 2,
+      itemCount: 3,
+      pageCount: 2,
+      hasNextPage: false,
+      hasPreviousPage: true,
+    });
+  });
+
+  it('GET /incidents returns empty data for pages beyond the result set', async () => {
+    await context.prisma.incident.create({
+      data: {
+        title: 'Single event',
+        machineId: 'PAGER-04',
+        priority: 'LOW',
+      },
+    });
+
+    const response = await request(context.httpServer)
+      .get('/incidents')
+      .query({ page: 3, pageSize: 10 })
+      .expect(200);
+
+    const body = response.body as PaginatedIncidentsResponse;
+
+    expect(body.data).toEqual([]);
+    expect(body.meta).toMatchObject({
+      page: 3,
+      pageSize: 10,
+      itemCount: 1,
+      pageCount: 1,
+      hasNextPage: false,
+      hasPreviousPage: true,
     });
   });
 
@@ -134,6 +218,23 @@ describe('Incident Query API (e2e)', () => {
         fromDate: '2026-04-12T00:00:00.000Z',
         toDate: '2026-04-11T23:59:59.999Z',
       })
+      .expect(400);
+  });
+
+  it('GET /incidents rejects invalid pagination parameters', async () => {
+    await request(context.httpServer)
+      .get('/incidents')
+      .query({ page: 0 })
+      .expect(400);
+
+    await request(context.httpServer)
+      .get('/incidents')
+      .query({ pageSize: 101 })
+      .expect(400);
+
+    await request(context.httpServer)
+      .get('/incidents')
+      .query({ page: 'not-a-number' })
       .expect(400);
   });
 
