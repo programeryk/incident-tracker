@@ -5,6 +5,8 @@ import { IncidentFilters } from './IncidentFilters';
 import { IncidentPagination } from './IncidentPagination';
 import { setPage } from './incidentsSlice';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import Link from 'next/link';
+import { PriorityBadge, StatusBadge } from './IncidentBadges';
 
 export function IncidentDashboard() {
   const dispatch = useAppDispatch();
@@ -80,17 +82,24 @@ export function IncidentDashboard() {
                       {data.data.map((incident) => (
                         <tr key={incident.id} className="hover:bg-slate-800/50">
                           <td className="px-4 py-3 font-medium text-slate-100">
-                            {incident.title}
+                            <Link
+                              href={`/incidents/${incident.id}`}
+                              className="text-cyan-200 hover:text-cyan-100"
+                            >
+                              {incident.title}
+                            </Link>
                           </td>
                           <td className="px-4 py-3 text-slate-300">
                             {incident.machineId}
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
-                            {incident.status}
+                          <td className="px-4 py-3">
+                            <StatusBadge status={incident.status} />
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
-                            {incident.priority}
+
+                          <td className="px-4 py-3">
+                            <PriorityBadge priority={incident.priority} />
                           </td>
+
                           <td className="px-4 py-3 text-slate-300">
                             {new Date(incident.occurredAt).toLocaleString()}
                           </td>

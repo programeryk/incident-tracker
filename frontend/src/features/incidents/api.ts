@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { IncidentFilters, PaginatedIncidentsResponse } from './types';
+import type { Incident, IncidentFilters, PaginatedIncidentsResponse } from './types';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
@@ -44,7 +44,11 @@ export const incidentsApi = createApi({
       query: buildIncidentQuery,
       providesTags: ['Incidents'],
     }),
+    getIncident: builder.query<Incident, string>({
+      query: (id) => `incidents/${id}`,
+      providesTags: (_result, _error, id) => [{ type: `Incidents`, id }]
+    }),
   }),
 });
 
-export const { useGetIncidentsQuery } = incidentsApi;
+export const { useGetIncidentsQuery, useGetIncidentQuery } = incidentsApi;
