@@ -48,3 +48,23 @@ export type IncidentFilters = {
   page: number;
   pageSize: number;
 };
+
+export type CreateIncidentRequest = {
+  title: string;
+  machineId: string;
+  priority: IncidentPriority;
+  description?: string;
+  status?: IncidentStatus;
+  occurredAt?: string;
+};
+
+export type UpdateIncidentStatusRequest = {
+  id: string;
+  status: IncidentStatus;
+};
+
+export type AddIncidentCommentRequest = {
+  incidentId: string;
+  message: string;
+  author?: string;
+};

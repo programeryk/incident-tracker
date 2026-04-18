@@ -1,6 +1,8 @@
 'use client';
 
 import { useGetIncidentsQuery } from './api';
+import { formatApiError } from './apiError';
+import { IncidentCreateForm } from './IncidentCreateForm';
 import { IncidentFilters } from './IncidentFilters';
 import { IncidentPagination } from './IncidentPagination';
 import { setPage } from './incidentsSlice';
@@ -31,6 +33,7 @@ export function IncidentDashboard() {
         </header>
 
         <div className="space-y-6">
+          <IncidentCreateForm />
           <IncidentFilters />
 
           <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
@@ -55,9 +58,9 @@ export function IncidentDashboard() {
               ) : null}
 
               {isError ? (
-                <pre className="overflow-auto rounded-md border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
-                  {JSON.stringify(error, null, 2)}
-                </pre>
+                <div className="rounded-md border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+                  {formatApiError(error, 'Incidents could not be loaded.')}
+                </div>
               ) : null}
 
               {data && data.data.length === 0 ? (
