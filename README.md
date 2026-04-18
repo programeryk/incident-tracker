@@ -1,6 +1,6 @@
 # Maintenance Incident Tracker API
 
-Backend API for reporting and managing machine incidents with NestJS, PostgreSQL, Prisma, validation, Docker, and Swagger.
+Backend API and Next.js dashboard for reporting and managing machine incidents.
 
 ## Stack
 
@@ -11,6 +11,7 @@ Backend API for reporting and managing machine incidents with NestJS, PostgreSQL
 - Swagger/OpenAPI
 - Docker Compose
 - Jest for unit and e2e tests
+- Next.js frontend with Redux Toolkit Query
 
 ## What is included
 
@@ -22,6 +23,7 @@ Backend API for reporting and managing machine incidents with NestJS, PostgreSQL
 - `PATCH /incidents/:id/status` update status and downtime info
 - `POST /incidents/:id/comments` add comments or progress updates
 - Swagger UI at `/docs`
+- Next.js dashboard in `frontend/`
 
 ## Local setup
 
@@ -75,6 +77,24 @@ npm run start:dev
 
 The API will be available at `http://localhost:3000` and Swagger docs at `http://localhost:3000/docs`.
 
+8. Install and start the frontend:
+
+```bash
+npm ci --prefix frontend
+npm run dev --prefix frontend -- --port 3001
+```
+
+The frontend will be available at `http://localhost:3001` and calls the API at
+`http://localhost:3000` by default. To change the browser-facing API URL, create
+`frontend/.env.local`:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+```
+
+The API allows `http://localhost:3001` by default. Override that with
+`FRONTEND_ORIGIN` in `.env` when the frontend runs elsewhere.
+
 ## Useful commands
 
 ```bash
@@ -88,6 +108,8 @@ npm run test:e2e:setup
 npm run prisma:seed
 npm run prisma:studio
 npm run db:down
+npm run lint --prefix frontend
+npm run build --prefix frontend
 ```
 
 `npm run test:e2e` prepares and resets the dedicated `incident_tracker_test` database before running the suite, so it does not touch local development data.
@@ -99,8 +121,8 @@ The seed and e2e setup commands include local database safety checks before dele
 - Authentication and role-based access
 - Redis-backed caching or queues
 - Structured logging and metrics
-- Seed data for demo environments
-- More tests around incident lifecycle flows
+- Frontend component or browser-level tests
+- Demo deployment configuration
 
 ## Example request
 

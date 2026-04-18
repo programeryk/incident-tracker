@@ -39,24 +39,36 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: npm ci
 
-      - name: Generate Prisma client
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Generate backend Prisma client
         run: npm run prisma:generate
 
-      - name: Build
+      - name: Build backend
         run: npm run build
 
-      - name: Lint
+      - name: Lint backend
         run: npm run lint
 
-      - name: Check formatting
+      - name: Check backend formatting
         run: npm run format:check
 
-      - name: Unit tests
+      - name: Backend unit tests
         run: npm test
 
-      - name: E2E tests
+      - name: Backend E2E tests
         run: npm run test:e2e
+
+      - name: Lint frontend
+        run: npm run lint --prefix frontend
+
+      - name: Build frontend
+        run: npm run build --prefix frontend
