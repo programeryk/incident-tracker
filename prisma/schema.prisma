@@ -19,34 +19,139 @@ enum IncidentPriority {
   CRITICAL
 }
 
-model Incident {
-  id              String            @id @default(cuid())
-  title           String
+enum UserRole {
+  OPERATOR
+  TECHNICIAN
+  SUPERVISOR
+  ADMIN
+}
+
+enum IncidentEventType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  COMMENTED
+  REOPENED
+}
+
+model User {
+  id                    String            @id @default(cuid())
+  email                 String            @unique
+  name                  String
+  passwordHash          String
+  role                  UserRole          @default(OPERATOR)
+  isActive              Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  refreshSessions       RefreshSession[]
+  createdIncidents      Incident[]        @relation("IncidentCreator")
+  assignedIncidents     Incident[]        @relation("IncidentAssignee")
+  acknowledgedIncidents Incident[]        @relation("IncidentAcknowledger")
+  resolvedIncidents     Incident[]        @relation("IncidentResolver")
+  comments              IncidentComment[]
+  events                IncidentEvent[]
+  createdUsers          User[]            @relation("UserCreator")
+  createdByUser         User?             @relation("UserCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdByUserId       String?
+  createdMachines       Machine[]         @relation("MachineCreator")
+  updatedMachines       Machine[]         @relation("MachineUpdater")
+}
+
+model RefreshSession {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Machine {
+  id              String     @id @default(cuid())
+  code            String     @unique
+  name            String
+  area            String
+  line            String?
   description     String?
-  machineId       String
-  status          IncidentStatus    @default(OPEN)
-  priority        IncidentPriority
-  occurredAt      DateTime          @default(now())
-  acknowledgedAt  DateTime?
-  resolvedAt      DateTime?
-  downtimeMinutes Int?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  comments        IncidentComment[]
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  createdByUserId String?
+  updatedByUserId String?
+  createdByUser   User?      @relation("MachineCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser   User?      @relation("MachineUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  incidents       Incident[]
+
+  @@index([area])
+  @@index([line])
+  @@index([isActive])
+}
+
+model Incident {
+  id                   String            @id @default(cuid())
+  title                String
+  description          String?
+  machineId            String
+  machine              Machine           @relation(fields: [machineId], references: [code])
+  status               IncidentStatus    @default(OPEN)
+  priority             IncidentPriority
+  occurredAt           DateTime          @default(now())
+  acknowledgedAt       DateTime?
+  resolvedAt           DateTime?
+  downtimeMinutes      Int?
+  createdByUserId      String?
+  assignedToUserId     String?
+  acknowledgedByUserId String?
+  resolvedByUserId     String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  comments             IncidentComment[]
+  events               IncidentEvent[]
+  createdByUser        User?             @relation("IncidentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  assignedToUser       User?             @relation("IncidentAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  acknowledgedByUser   User?             @relation("IncidentAcknowledger", fields: [acknowledgedByUserId], references: [id], onDelete: SetNull)
+  resolvedByUser       User?             @relation("IncidentResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
 
   @@index([machineId])
   @@index([status])
   @@index([priority])
   @@index([occurredAt])
+  @@index([createdByUserId])
+  @@index([assignedToUserId])
 }
 
 model IncidentComment {
   id         String   @id @default(cuid())
   incidentId String
   author     String?
+  userId     String?
   message    String
   createdAt  DateTime @default(now())
   incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([incidentId])
+  @@index([userId])
+}
+
+model IncidentEvent {
+  id          String            @id @default(cuid())
+  incidentId  String
+  actorUserId String?
+  type        IncidentEventType
+  message     String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+  incident    Incident          @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  actorUser   User?             @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([incidentId])
+  @@index([actorUserId])
+  @@index([type])
+  @@index([createdAt])
 }

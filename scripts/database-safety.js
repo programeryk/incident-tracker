@@ -38,9 +38,14 @@ const assertSafeTestDatabase = (connectionString) => {
 const assertSafeSeedDatabase = (connectionString) => {
   const target = assertLocalDatabase(connectionString, 'Seed command');
 
-  if (target.databaseName !== 'incident_tracker') {
+  const allowedDatabaseNames =
+    process.env.NODE_ENV === 'test'
+      ? new Set(['incident_tracker', 'incident_tracker_test'])
+      : new Set(['incident_tracker']);
+
+  if (!allowedDatabaseNames.has(target.databaseName)) {
     throw new Error(
-      `Seed command refused to run because database "${target.databaseName}" is not "incident_tracker".`,
+      `Seed command refused to run because database "${target.databaseName}" is not an allowed seed target.`,
     );
   }
 
