@@ -22,6 +22,14 @@ Backend API and Next.js dashboard for reporting and managing machine incidents.
 - `GET /incidents/:id` fetch a single incident with comments
 - `PATCH /incidents/:id/status` update status and downtime info
 - `POST /incidents/:id/comments` add comments or progress updates
+- Email/password auth with HttpOnly JWT cookies and role-based access
+- User administration for admin-created users
+- Machine registry with machine/area/line context on incidents
+- Immutable incident event timeline at `/incidents/:id/events`
+- Incident dashboard metrics at `/incidents/metrics`
+- Prometheus metrics at `/metrics`
+- Redis-backed background job placeholders for critical incident notifications,
+  stale incident scanning, and daily summaries
 - Swagger UI at `/docs`
 - Next.js dashboard in `frontend/`
 
@@ -51,6 +59,8 @@ Copy-Item .env.test.example .env.test
 npm run db:up
 ```
 
+This also starts Redis for local background jobs.
+
 4. Generate the Prisma client:
 
 ```bash
@@ -68,6 +78,9 @@ npx prisma migrate deploy
 ```bash
 npm run prisma:seed
 ```
+
+Seeded demo users all use the password `ChangeMe12345!`. Start with
+`admin@example.com`.
 
 7. Start the API:
 
@@ -95,15 +108,26 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
 The API allows `http://localhost:3001` by default. Override that with
 `FRONTEND_ORIGIN` in `.env` when the frontend runs elsewhere.
 
+The frontend dev script uses Next.js Webpack mode by default to avoid a
+Turbopack/PostCSS worker process explosion seen on this Windows setup. Use
+`npm run dev:turbo --prefix frontend -- --port 3001` only when intentionally
+re-testing Turbopack after dependency or Node upgrades.
+
 ## Useful commands
 
 ```bash
+npm run dev:all
+npm run dev:api
+npm run dev:web
+npm run verify
 npm run build
+npm run typecheck
 npm run lint
 npm run lint:fix
 npm run format:check
 npm run test
 npm run test:e2e
+npm run test:browser
 npm run test:e2e:setup
 npm run prisma:seed
 npm run prisma:studio
@@ -116,13 +140,12 @@ npm run build --prefix frontend
 
 The seed and e2e setup commands include local database safety checks before deleting data.
 
-## Next features
+## Production deployment
 
-- Authentication and role-based access
-- Redis-backed caching or queues
-- Structured logging and metrics
-- Frontend component or browser-level tests
-- Demo deployment configuration
+Copy `.env.production.example` to `.env.production`, replace every secret, and
+follow [the VPS deployment runbook](docs/deployment.md). The production compose
+file runs Postgres, Redis, the API, the frontend, and a one-shot migration
+service.
 
 ## Example request
 
