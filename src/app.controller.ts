@@ -5,6 +5,7 @@ import {
   ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from './auth/public.decorator';
 import { AppService } from './app.service';
 
 @ApiTags('health')
@@ -13,6 +14,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get lightweight service health' })
   @ApiOkResponse({
     description: 'Simple health check endpoint.',
@@ -29,6 +31,7 @@ export class AppController {
   }
 
   @Get('ready')
+  @Public()
   @ApiOperation({ summary: 'Check database readiness' })
   @ApiOkResponse({
     description: 'Service dependencies are ready.',

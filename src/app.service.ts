@@ -1,9 +1,13 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { MetricsService } from './metrics/metrics.service';
 import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly metricsService: MetricsService,
+  ) {}
 
   getHealth() {
     return {
@@ -16,7 +20,9 @@ export class AppService {
   async getReadiness() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
+      this.metricsService.setDatabaseReady(true);
     } catch {
+      this.metricsService.setDatabaseReady(false);
       throw new ServiceUnavailableException(
         'Database connection is unavailable.',
       );
