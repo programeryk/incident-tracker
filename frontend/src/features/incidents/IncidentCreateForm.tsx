@@ -1,7 +1,12 @@
 'use client';
 
 import { type FormEvent, useState } from 'react';
-import { useCreateIncidentMutation } from './api';
+import {
+  useCreateIncidentMutation,
+  useGetMeQuery,
+  useGetMachinesQuery,
+  useGetUsersQuery,
+} from './api';
 import { formatApiError } from './apiError';
 import type { IncidentPriority, IncidentStatus } from './types';
 
@@ -19,6 +24,7 @@ type CreateFormState = {
   priority: IncidentPriority;
   description: string;
   status: IncidentStatus;
+  assignedToUserId: string;
   occurredAt: string;
 };
 
@@ -28,6 +34,7 @@ const initialState: CreateFormState = {
   priority: 'MEDIUM',
   description: '',
   status: 'OPEN',
+  assignedToUserId: '',
   occurredAt: '',
 };
 
@@ -43,6 +50,12 @@ export function IncidentCreateForm() {
   const [form, setForm] = useState<CreateFormState>(initialState);
   const [formMessage, setFormMessage] = useState('');
   const [createIncident, { isLoading }] = useCreateIncidentMutation();
+  const { data: currentUser } = useGetMeQuery();
+  const { data: machines } = useGetMachinesQuery();
+  const canAssign =
+    currentUser?.user.role === 'SUPERVISOR' ||
+    currentUser?.user.role === 'ADMIN';
+  const { data: users } = useGetUsersQuery(undefined, { skip: !canAssign });
 
   const updateField = <Field extends keyof CreateFormState>(
     field: Field,
@@ -70,6 +83,9 @@ export function IncidentCreateForm() {
         machineId,
         priority: form.priority,
         status: form.status,
+        ...(form.assignedToUserId
+          ? { assignedToUserId: form.assignedToUserId }
+          : {}),
         ...(description ? { description } : {}),
         ...(form.occurredAt
           ? { occurredAt: toIncidentDate(form.occurredAt) }
@@ -121,7 +137,23 @@ export function IncidentCreateForm() {
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="text-slate-300">Known machine</span>
+            <select
+              value={form.machineId}
+              onChange={(event) => updateField('machineId', event.target.value)}
+              className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-400"
+            >
+              <option value="">Manual machine ID</option>
+              {machines?.data.map((machine) => (
+                <option key={machine.id} value={machine.code}>
+                  {machine.code} · {machine.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-slate-300">Priority</span>
             <select
@@ -138,6 +170,26 @@ export function IncidentCreateForm() {
               ))}
             </select>
           </label>
+
+          {canAssign ? (
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="text-slate-300">Assign to</span>
+              <select
+                value={form.assignedToUserId}
+                onChange={(event) =>
+                  updateField('assignedToUserId', event.target.value)
+                }
+                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-400"
+              >
+                <option value="">Unassigned</option>
+                {users?.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-slate-300">Initial status</span>

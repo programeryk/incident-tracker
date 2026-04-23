@@ -4,6 +4,7 @@ import { type FormEvent, useState } from 'react';
 import Link from 'next/link';
 import {
   useAddIncidentCommentMutation,
+  useGetIncidentEventsQuery,
   useGetIncidentQuery,
   useUpdateIncidentStatusMutation,
 } from './api';
@@ -45,6 +46,7 @@ function getNextStatuses(status: IncidentStatus): IncidentStatus[] {
 
 export function IncidentDetail({ incidentId }: IncidentDetailProps) {
   const { data, isLoading, isError, error } = useGetIncidentQuery(incidentId);
+  const { data: events } = useGetIncidentEventsQuery(incidentId);
   const [updateIncidentStatus, { isLoading: isUpdatingStatus }] =
     useUpdateIncidentStatusMutation();
   const [addIncidentComment, { isLoading: isAddingComment }] =
@@ -203,7 +205,47 @@ export function IncidentDetail({ incidentId }: IncidentDetailProps) {
                     {formatDowntime(data.downtimeMinutes)}
                   </dd>
                 </div>
+
+                <div>
+                  <dt className="text-sm text-slate-400">Assigned</dt>
+                  <dd className="mt-1 text-sm font-medium">
+                    {data.assignedToUser?.name ?? 'Unassigned'}
+                  </dd>
+                </div>
               </dl>
+            </section>
+
+            <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+              <h2 className="text-lg font-medium">Timeline</h2>
+              {events?.length ? (
+                <div className="mt-5 space-y-3">
+                  {events.map((event) => (
+                    <article
+                      key={event.id}
+                      className="rounded-md border border-slate-800 bg-slate-950 p-4"
+                    >
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-medium text-cyan-200">
+                          {event.type.replace('_', ' ')}
+                        </p>
+                        <time className="text-xs text-slate-500">
+                          {formatDate(event.createdAt)}
+                        </time>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-300">
+                        {event.message ?? 'Timeline event recorded.'}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Actor: {event.actorUser?.name ?? 'System'}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-slate-400">
+                  No timeline events have been recorded.
+                </p>
+              )}
             </section>
 
             <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">

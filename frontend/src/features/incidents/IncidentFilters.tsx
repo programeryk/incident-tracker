@@ -2,6 +2,10 @@
 
 import {
   resetFilters,
+  setActiveOnly,
+  setArea,
+  setAssignedToUserId,
+  setLine,
   setFromDate,
   setMachineId,
   setPriority,
@@ -12,6 +16,7 @@ import {
 
 import type { IncidentPriority, IncidentStatus } from './types';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import { useGetMeQuery, useGetUsersQuery } from './api';
 
 const STATUS_OPTIONS: Array<IncidentStatus> = [
   'OPEN',
@@ -28,6 +33,13 @@ const PRIORITY_OPTIONS: Array<IncidentPriority> = [
 export function IncidentFilters() {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.incidents);
+  const { data: currentUser } = useGetMeQuery();
+  const canFilterUsers =
+    currentUser?.user.role === 'SUPERVISOR' ||
+    currentUser?.user.role === 'ADMIN';
+  const { data: users } = useGetUsersQuery(undefined, {
+    skip: !canFilterUsers,
+  });
 
   return (
     <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
@@ -48,7 +60,7 @@ export function IncidentFilters() {
         </button>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <label className="flex flex-col gap-2 text-sm">
           <span className="text-slate-300">Machine ID</span>
           <input
@@ -56,6 +68,28 @@ export function IncidentFilters() {
             value={filters.machineId}
             onChange={(event) => dispatch(setMachineId(event.target.value))}
             placeholder="e.g. CNC-01"
+            className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400"
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="text-slate-300">Area</span>
+          <input
+            type="text"
+            value={filters.area}
+            onChange={(event) => dispatch(setArea(event.target.value))}
+            placeholder="Press Hall"
+            className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400"
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="text-slate-300">Line</span>
+          <input
+            type="text"
+            value={filters.line}
+            onChange={(event) => dispatch(setLine(event.target.value))}
+            placeholder="Line 3"
             className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400"
           />
         </label>
@@ -77,6 +111,26 @@ export function IncidentFilters() {
             ))}
           </select>
         </label>
+
+        {canFilterUsers ? (
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="text-slate-300">Assigned</span>
+            <select
+              value={filters.assignedToUserId}
+              onChange={(event) =>
+                dispatch(setAssignedToUserId(event.target.value))
+              }
+              className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-400"
+            >
+              <option value="">Anyone</option>
+              {users?.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="flex flex-col gap-2 text-sm">
           <span className="text-slate-300">Priority</span>
@@ -128,6 +182,16 @@ export function IncidentFilters() {
             <option value={20}>20</option>
             <option value={50}>50</option>
           </select>
+        </label>
+
+        <label className="flex flex-row items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={filters.activeOnly}
+            onChange={(event) => dispatch(setActiveOnly(event.target.checked))}
+            className="h-4 w-4 rounded border-slate-700 bg-slate-950"
+          />
+          <span className="text-slate-300">Active only</span>
         </label>
       </div>
     </section>

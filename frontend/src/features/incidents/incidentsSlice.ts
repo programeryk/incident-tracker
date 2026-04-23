@@ -3,6 +3,10 @@ import type { IncidentFilters, IncidentPriority, IncidentStatus } from './types'
 
 const initialState: IncidentFilters = {
   machineId: '',
+  area: '',
+  line: '',
+  assignedToUserId: '',
+  activeOnly: false,
   status: '',
   priority: '',
   fromDate: '',
@@ -17,6 +21,22 @@ const incidentsSlice = createSlice({
   reducers: {
     setMachineId(state, action: PayloadAction<string>) {
       state.machineId = action.payload;
+      state.page = 1;
+    },
+    setArea(state, action: PayloadAction<string>) {
+      state.area = action.payload;
+      state.page = 1;
+    },
+    setLine(state, action: PayloadAction<string>) {
+      state.line = action.payload;
+      state.page = 1;
+    },
+    setAssignedToUserId(state, action: PayloadAction<string>) {
+      state.assignedToUserId = action.payload;
+      state.page = 1;
+    },
+    setActiveOnly(state, action: PayloadAction<boolean>) {
+      state.activeOnly = action.payload;
       state.page = 1;
     },
     setStatus(state, action: PayloadAction<IncidentStatus | ''>) {
@@ -50,6 +70,10 @@ const incidentsSlice = createSlice({
 
 export const {
   setMachineId,
+  setArea,
+  setLine,
+  setAssignedToUserId,
+  setActiveOnly,
   setStatus,
   setPriority,
   setFromDate,

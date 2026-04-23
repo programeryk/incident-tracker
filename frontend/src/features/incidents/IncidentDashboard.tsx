@@ -1,6 +1,9 @@
 'use client';
 
-import { useGetIncidentsQuery } from './api';
+import {
+  useGetIncidentMetricsQuery,
+  useGetIncidentsQuery,
+} from './api';
 import { formatApiError } from './apiError';
 import { IncidentCreateForm } from './IncidentCreateForm';
 import { IncidentFilters } from './IncidentFilters';
@@ -15,9 +18,12 @@ export function IncidentDashboard() {
   const filters = useAppSelector((state) => state.incidents);
   const { data, isLoading, isFetching, isError, error } =
     useGetIncidentsQuery(filters);
+  const { data: metrics } = useGetIncidentMetricsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-8 text-slate-100">
+    <main className="px-6 py-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8">
           <p className="text-sm font-medium uppercase tracking-wide text-cyan-300">
@@ -33,6 +39,49 @@ export function IncidentDashboard() {
         </header>
 
         <div className="space-y-6">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              ['Open', metrics?.open ?? 0],
+              ['In progress', metrics?.inProgress ?? 0],
+              ['Critical unresolved', metrics?.critical ?? 0],
+              [
+                'Avg downtime',
+                `${Math.round(metrics?.averageDowntimeMinutes ?? 0)} min`,
+              ],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                data-testid={`metric-${String(label)
+                  .toLowerCase()
+                  .replaceAll(' ', '-')}`}
+                className="rounded-lg border border-slate-800 bg-slate-900 p-5"
+              >
+                <p className="text-sm text-slate-400">{label}</p>
+                <p className="mt-2 text-3xl font-semibold text-slate-100">
+                  {value}
+                </p>
+              </div>
+            ))}
+          </section>
+
+          {metrics?.unresolvedByArea ? (
+            <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+              <h2 className="text-lg font-medium">Unresolved by area</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {Object.entries(metrics.unresolvedByArea).map(
+                  ([area, count]) => (
+                    <span
+                      key={area}
+                      className="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-200"
+                    >
+                      {area}: {count}
+                    </span>
+                  ),
+                )}
+              </div>
+            </section>
+          ) : null}
+
           <IncidentCreateForm />
           <IncidentFilters />
 
@@ -41,7 +90,7 @@ export function IncidentDashboard() {
               <div>
                 <h2 className="text-lg font-medium">Incidents</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Paginated incident data from the Nest API.
+                  Live operational queue with machine and ownership context.
                 </p>
               </div>
 
@@ -76,8 +125,10 @@ export function IncidentDashboard() {
                       <tr>
                         <th className="px-4 py-3 font-medium">Title</th>
                         <th className="px-4 py-3 font-medium">Machine</th>
+                        <th className="px-4 py-3 font-medium">Area</th>
                         <th className="px-4 py-3 font-medium">Status</th>
                         <th className="px-4 py-3 font-medium">Priority</th>
+                        <th className="px-4 py-3 font-medium">Assigned</th>
                         <th className="px-4 py-3 font-medium">Occurred</th>
                       </tr>
                     </thead>
@@ -93,7 +144,10 @@ export function IncidentDashboard() {
                             </Link>
                           </td>
                           <td className="px-4 py-3 text-slate-300">
-                            {incident.machineId}
+                            {incident.machine?.name ?? incident.machineId}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {incident.machine?.area ?? 'Unassigned'}
                           </td>
                           <td className="px-4 py-3">
                             <StatusBadge status={incident.status} />
@@ -101,6 +155,10 @@ export function IncidentDashboard() {
 
                           <td className="px-4 py-3">
                             <PriorityBadge priority={incident.priority} />
+                          </td>
+
+                          <td className="px-4 py-3 text-slate-300">
+                            {incident.assignedToUser?.name ?? 'Unassigned'}
                           </td>
 
                           <td className="px-4 py-3 text-slate-300">
