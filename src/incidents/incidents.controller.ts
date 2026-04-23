@@ -15,6 +15,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import type { AuthUser } from '../auth/auth.types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { Roles } from '../auth/roles.decorator';
 import { CreateIncidentCommentDto } from './dto/create-incident-comment.dto';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { ListIncidentsQueryDto } from './dto/list-incidents-query.dto';
@@ -27,11 +31,24 @@ export class IncidentsController {
   constructor(private readonly incidentsService: IncidentsService) {}
 
   @Post()
+  @Roles(
+    UserRole.OPERATOR,
+    UserRole.TECHNICIAN,
+    UserRole.SUPERVISOR,
+    UserRole.ADMIN,
+  )
   @ApiOperation({ summary: 'Create a new incident' })
   @ApiCreatedResponse({ description: 'Incident created successfully.' })
   @ApiBadRequestResponse({ description: 'Request body failed validation.' })
-  create(@Body() dto: CreateIncidentDto) {
-    return this.incidentsService.create(dto);
+  create(@Body() dto: CreateIncidentDto, @CurrentUser() actor: AuthUser) {
+    return this.incidentsService.create(dto, actor);
+  }
+
+  @Get('metrics')
+  @ApiOperation({ summary: 'Get incident dashboard metrics' })
+  @ApiOkResponse({ description: 'Incident dashboard metrics returned.' })
+  getMetrics() {
+    return this.incidentsService.getMetrics();
   }
 
   @Get()
@@ -76,25 +93,48 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Get a single incident with comments' })
   @ApiOkResponse({ description: 'Incident returned successfully.' })
   @ApiNotFoundResponse({ description: 'Incident was not found.' })
-  getOne(@Param('id') id: string) {
-    return this.incidentsService.getOne(id);
+  getOne(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return this.incidentsService.getOne(id, actor);
+  }
+
+  @Get(':id/events')
+  @ApiOperation({ summary: 'Get the immutable incident timeline' })
+  @ApiOkResponse({ description: 'Incident timeline returned successfully.' })
+  @ApiNotFoundResponse({ description: 'Incident was not found.' })
+  getEvents(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return this.incidentsService.getEvents(id, actor);
   }
 
   @Patch(':id/status')
+  @Roles(UserRole.TECHNICIAN, UserRole.SUPERVISOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Update incident status and downtime details' })
   @ApiOkResponse({ description: 'Incident updated successfully.' })
   @ApiBadRequestResponse({ description: 'Request body failed validation.' })
   @ApiNotFoundResponse({ description: 'Incident was not found.' })
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateIncidentStatusDto) {
-    return this.incidentsService.updateStatus(id, dto);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateIncidentStatusDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.incidentsService.updateStatus(id, dto, actor);
   }
 
   @Post(':id/comments')
+  @Roles(
+    UserRole.OPERATOR,
+    UserRole.TECHNICIAN,
+    UserRole.SUPERVISOR,
+    UserRole.ADMIN,
+  )
   @ApiOperation({ summary: 'Add a comment or update to an incident' })
   @ApiCreatedResponse({ description: 'Comment added successfully.' })
   @ApiBadRequestResponse({ description: 'Request body failed validation.' })
   @ApiNotFoundResponse({ description: 'Incident was not found.' })
-  addComment(@Param('id') id: string, @Body() dto: CreateIncidentCommentDto) {
-    return this.incidentsService.addComment(id, dto);
+  addComment(
+    @Param('id') id: string,
+    @Body() dto: CreateIncidentCommentDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.incidentsService.addComment(id, dto, actor);
   }
 }

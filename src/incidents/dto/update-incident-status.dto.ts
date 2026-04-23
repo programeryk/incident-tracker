@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IncidentStatus } from '@prisma/client';
 import { IsEnum } from 'class-validator';
-import { IncidentStatus } from '../incidents.types';
 
 export class UpdateIncidentStatusDto {
   @ApiProperty({ enum: IncidentStatus, example: IncidentStatus.IN_PROGRESS })

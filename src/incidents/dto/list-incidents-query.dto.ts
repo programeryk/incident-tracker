@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -10,6 +11,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { BooleanQuery } from '../../common/transforms/boolean-query.transform';
 import { TrimString } from '../../common/transforms/trim-string.transform';
 import { IncidentPriority, IncidentStatus } from '../incidents.types';
 
@@ -20,6 +22,38 @@ export class ListIncidentsQueryDto {
   @IsString()
   @MaxLength(80)
   machineId?: string;
+
+  @ApiPropertyOptional({ example: 'Press Hall' })
+  @IsOptional()
+  @TrimString()
+  @IsString()
+  @MaxLength(80)
+  area?: string;
+
+  @ApiPropertyOptional({ example: 'Line 3' })
+  @IsOptional()
+  @TrimString()
+  @IsString()
+  @MaxLength(80)
+  line?: string;
+
+  @ApiPropertyOptional({ example: 'clxassigneduser001' })
+  @IsOptional()
+  @TrimString()
+  @IsString()
+  assignedToUserId?: string;
+
+  @ApiPropertyOptional({ example: 'clxcreatoruser001' })
+  @IsOptional()
+  @TrimString()
+  @IsString()
+  createdByUserId?: string;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @BooleanQuery()
+  @IsBoolean()
+  activeOnly?: boolean;
 
   @ApiPropertyOptional({ enum: IncidentStatus, example: IncidentStatus.OPEN })
   @IsOptional()

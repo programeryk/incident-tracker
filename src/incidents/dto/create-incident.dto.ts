@@ -44,6 +44,13 @@ export class CreateIncidentDto {
   @IsEnum(IncidentStatus)
   status?: IncidentStatus;
 
+  @ApiPropertyOptional({ example: 'clxassigneduser001' })
+  @IsOptional()
+  @TrimString()
+  @IsString()
+  @IsNotEmpty()
+  assignedToUserId?: string;
+
   @ApiPropertyOptional({ example: '2026-04-11T14:30:00.000Z' })
   @IsOptional()
   @IsDateString()
