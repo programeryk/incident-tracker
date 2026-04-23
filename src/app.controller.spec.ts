@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { MetricsService } from './metrics/metrics.service';
 import { PrismaService } from './prisma/prisma.service';
 
 describe('AppController', () => {
@@ -11,6 +12,12 @@ describe('AppController', () => {
       controllers: [AppController],
       providers: [
         AppService,
+        {
+          provide: MetricsService,
+          useValue: {
+            setDatabaseReady: jest.fn(),
+          },
+        },
         {
           provide: PrismaService,
           useValue: {

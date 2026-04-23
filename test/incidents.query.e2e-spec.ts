@@ -94,6 +94,16 @@ describe('Incident Query API (e2e)', () => {
       }),
     ).toBe(true);
 
+    const byPartialMachine = await request(context.httpServer)
+      .get('/incidents')
+      .query({ machineId: 'press' })
+      .expect(200);
+
+    const partialMachineFilteredBodies =
+      byPartialMachine.body as PaginatedIncidentsResponse;
+
+    expect(partialMachineFilteredBodies.data).toHaveLength(3);
+
     const byStatus = await request(context.httpServer)
       .get('/incidents')
       .query({ status: 'IN_PROGRESS' })
@@ -135,6 +145,64 @@ describe('Incident Query API (e2e)', () => {
     expect(dateRangeFilteredBodies.data).toHaveLength(1);
     expect(dateRangeFilteredBodies.data[0]).toMatchObject({
       machineId: 'PRESS-02',
+    });
+  });
+
+  it('GET /incidents applies partial area and line filters', async () => {
+    await context.prisma.machine.createMany({
+      data: [
+        {
+          code: 'FILTER-PRESS-01',
+          name: 'Filter Press 01',
+          area: 'Press Hall',
+          line: 'Line 3',
+        },
+        {
+          code: 'FILTER-PACK-01',
+          name: 'Filter Pack 01',
+          area: 'Packaging',
+          line: 'Line 1',
+        },
+      ],
+      skipDuplicates: true,
+    });
+    await context.prisma.incident.createMany({
+      data: [
+        {
+          title: 'Press hall incident',
+          machineId: 'FILTER-PRESS-01',
+          priority: 'HIGH',
+        },
+        {
+          title: 'Packaging incident',
+          machineId: 'FILTER-PACK-01',
+          priority: 'LOW',
+        },
+      ],
+    });
+
+    const byArea = await request(context.httpServer)
+      .get('/incidents')
+      .query({ area: 'press' })
+      .expect(200);
+
+    const areaFilteredBodies = byArea.body as PaginatedIncidentsResponse;
+
+    expect(areaFilteredBodies.data).toHaveLength(1);
+    expect(areaFilteredBodies.data[0]).toMatchObject({
+      machineId: 'FILTER-PRESS-01',
+    });
+
+    const byLine = await request(context.httpServer)
+      .get('/incidents')
+      .query({ line: 'ne 1' })
+      .expect(200);
+
+    const lineFilteredBodies = byLine.body as PaginatedIncidentsResponse;
+
+    expect(lineFilteredBodies.data).toHaveLength(1);
+    expect(lineFilteredBodies.data[0]).toMatchObject({
+      machineId: 'FILTER-PACK-01',
     });
   });
 
