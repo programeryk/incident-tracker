@@ -40,6 +40,19 @@ describe('database safety guards', () => {
     }).not.toThrow();
   });
 
+  it('allows seeding the local test database in test mode', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env['NODE_ENV'] = 'test';
+
+    expect(() => {
+      assertSafeSeedDatabase(
+        'postgresql://postgres:postgres@localhost:5432/incident_tracker_test?schema=public',
+      );
+    }).not.toThrow();
+
+    process.env['NODE_ENV'] = originalNodeEnv;
+  });
+
   it('rejects seeding remote databases', () => {
     expect(() => {
       assertSafeSeedDatabase(
