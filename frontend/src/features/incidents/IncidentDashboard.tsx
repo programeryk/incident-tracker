@@ -154,7 +154,9 @@ export function IncidentDashboard() {
                           </td>
 
                           <td className="px-4 py-3">
+                            {incident.status !== 'RESOLVED' && (
                             <PriorityBadge priority={incident.priority} />
+                            )}
                           </td>
 
                           <td className="px-4 py-3 text-slate-300">
